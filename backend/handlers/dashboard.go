@@ -49,7 +49,7 @@ func GetRecentTickets(c *gin.Context) {
 
 	rows, err := config.DB.Query(`
 		SELECT id, ticket_number, user_id, subject, description, status, category, 
-		       dikerjakan_oleh, bukti_foto, created_at, updated_at, resolved_at
+		       dikerjakan_oleh, bukti_masalah, bukti_selesai, created_at, updated_at, resolved_at
 		FROM helpdesk_tickets 
 		WHERE user_id = ?
 		ORDER BY created_at DESC
@@ -66,7 +66,7 @@ func GetRecentTickets(c *gin.Context) {
 	for rows.Next() {
 		var t models.Ticket
 		err := rows.Scan(&t.ID, &t.TicketNumber, &t.UserID, &t.Subject, &t.Description,
-			&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiFoto,
+			&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiMasalah, &t.BuktiSelesai,
 			&t.CreatedAt, &t.UpdatedAt, &t.ResolvedAt)
 		if err != nil {
 			continue

@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Tickets from './pages/Tickets';
 import CreateTicket from './pages/CreateTicket';
 import TicketDetail from './pages/TicketDetail';
+import AllTickets from './pages/AllTickets';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Route path="/tickets" element={<Tickets />} />
             <Route path="/tickets/create" element={<CreateTicket />} />
             <Route path="/tickets/:id" element={<TicketDetail />} />
+            <Route path="/admin/tickets" element={<AllTickets />} />
           </Route>
 
           {/* Catch all */}
@@ -33,3 +35,4 @@ function App() {
 }
 
 export default App;
+

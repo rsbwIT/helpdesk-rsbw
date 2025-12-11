@@ -40,7 +40,8 @@ export interface Ticket {
     status: 'baru' | 'dikerjakan' | 'selesai' | 'ditutup';
     category: string;
     dikerjakan_oleh: string | null;
-    bukti_foto: string | null;
+    bukti_masalah: string | null;
+    bukti_selesai: string | null;
     created_at: string;
     updated_at: string;
     resolved_at: string | null;
@@ -85,14 +86,22 @@ export const ticketService = {
         return response.data;
     },
 
-    // Upload bukti foto
-    uploadBukti: async (id: number, file: File): Promise<Ticket> => {
+    // Upload bukti masalah (by user)
+    uploadBuktiMasalah: async (id: number, file: File): Promise<void> => {
         const formData = new FormData();
         formData.append('bukti', file);
-        const response = await api.post(`/tickets/${id}/bukti`, formData, {
+        await api.post(`/tickets/${id}/bukti-masalah`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
-        return response.data;
+    },
+
+    // Upload bukti selesai (by admin)
+    uploadBuktiSelesai: async (id: number, file: File): Promise<void> => {
+        const formData = new FormData();
+        formData.append('bukti', file);
+        await api.post(`/tickets/${id}/bukti-selesai`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
     },
 
     // Get categories
@@ -111,6 +120,37 @@ export const ticketService = {
     getRecentTickets: async (): Promise<Ticket[]> => {
         const response = await api.get('/dashboard/recent');
         return response.data;
+    },
+};
+
+export interface AuthInfo {
+    user_id: string;
+    nama: string;
+    is_admin: boolean;
+}
+
+export const adminService = {
+    // Get auth info including admin status
+    getAuthInfo: async (): Promise<AuthInfo> => {
+        const response = await api.get('/auth/info');
+        return response.data;
+    },
+
+    // Get all tickets (admin only)
+    getAllTickets: async (): Promise<Ticket[]> => {
+        const response = await api.get('/admin/tickets');
+        return response.data;
+    },
+
+    // Get admin dashboard stats
+    getAdminStats: async (): Promise<DashboardStats> => {
+        const response = await api.get('/admin/dashboard/stats');
+        return response.data;
+    },
+
+    // Update ticket status (admin)
+    updateTicket: async (id: number, status: string): Promise<void> => {
+        await api.patch(`/admin/tickets/${id}`, { status });
     },
 };
 

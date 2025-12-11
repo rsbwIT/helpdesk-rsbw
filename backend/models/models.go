@@ -11,7 +11,8 @@ type Ticket struct {
 	Status         string     `json:"status"`
 	Category       string     `json:"category"`
 	DikerjakanOleh *string    `json:"dikerjakan_oleh"`
-	BuktiFoto      *string    `json:"bukti_foto"`
+	BuktiMasalah   *string    `json:"bukti_masalah"`
+	BuktiSelesai   *string    `json:"bukti_selesai"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 	ResolvedAt     *time.Time `json:"resolved_at"`

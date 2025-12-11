@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -19,7 +20,7 @@ func GetTickets(c *gin.Context) {
 
 	rows, err := config.DB.Query(`
 		SELECT id, ticket_number, user_id, subject, description, status, category, 
-		       dikerjakan_oleh, bukti_foto, created_at, updated_at, resolved_at
+		       dikerjakan_oleh, bukti_masalah, bukti_selesai, created_at, updated_at, resolved_at
 		FROM helpdesk_tickets 
 		WHERE user_id = ?
 		ORDER BY created_at DESC
@@ -35,7 +36,7 @@ func GetTickets(c *gin.Context) {
 	for rows.Next() {
 		var t models.Ticket
 		err := rows.Scan(&t.ID, &t.TicketNumber, &t.UserID, &t.Subject, &t.Description,
-			&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiFoto,
+			&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiMasalah, &t.BuktiSelesai,
 			&t.CreatedAt, &t.UpdatedAt, &t.ResolvedAt)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -55,11 +56,11 @@ func GetTicket(c *gin.Context) {
 	var t models.Ticket
 	err := config.DB.QueryRow(`
 		SELECT id, ticket_number, user_id, subject, description, status, category, 
-		       dikerjakan_oleh, bukti_foto, created_at, updated_at, resolved_at
+		       dikerjakan_oleh, bukti_masalah, bukti_selesai, created_at, updated_at, resolved_at
 		FROM helpdesk_tickets 
 		WHERE id = ? AND user_id = ?
 	`, ticketID, userID).Scan(&t.ID, &t.TicketNumber, &t.UserID, &t.Subject, &t.Description,
-		&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiFoto,
+		&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiMasalah, &t.BuktiSelesai,
 		&t.CreatedAt, &t.UpdatedAt, &t.ResolvedAt)
 
 	if err == sql.ErrNoRows {
@@ -104,10 +105,10 @@ func CreateTicket(c *gin.Context) {
 	var t models.Ticket
 	config.DB.QueryRow(`
 		SELECT id, ticket_number, user_id, subject, description, status, category, 
-		       dikerjakan_oleh, bukti_foto, created_at, updated_at, resolved_at
+		       dikerjakan_oleh, bukti_masalah, bukti_selesai, created_at, updated_at, resolved_at
 		FROM helpdesk_tickets WHERE id = ?
 	`, id).Scan(&t.ID, &t.TicketNumber, &t.UserID, &t.Subject, &t.Description,
-		&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiFoto,
+		&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiMasalah, &t.BuktiSelesai,
 		&t.CreatedAt, &t.UpdatedAt, &t.ResolvedAt)
 
 	c.JSON(http.StatusCreated, t)
@@ -163,7 +164,7 @@ func generateTicketNumber() string {
 func GetAllTickets(c *gin.Context) {
 	rows, err := config.DB.Query(`
 		SELECT id, ticket_number, user_id, subject, description, status, category, 
-		       dikerjakan_oleh, bukti_foto, created_at, updated_at, resolved_at
+		       dikerjakan_oleh, bukti_masalah, bukti_selesai, created_at, updated_at, resolved_at
 		FROM helpdesk_tickets 
 		ORDER BY created_at DESC
 		LIMIT 100
@@ -179,7 +180,7 @@ func GetAllTickets(c *gin.Context) {
 	for rows.Next() {
 		var t models.Ticket
 		err := rows.Scan(&t.ID, &t.TicketNumber, &t.UserID, &t.Subject, &t.Description,
-			&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiFoto,
+			&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiMasalah, &t.BuktiSelesai,
 			&t.CreatedAt, &t.UpdatedAt, &t.ResolvedAt)
 		if err != nil {
 			continue
@@ -209,8 +210,8 @@ func AssignTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Ticket assigned"})
 }
 
-// UploadBukti - Upload proof of work
-func UploadBukti(c *gin.Context) {
+// UploadBuktiMasalah - Upload proof of problem (by user)
+func UploadBuktiMasalah(c *gin.Context) {
 	ticketID := c.Param("id")
 
 	file, err := c.FormFile("bukti")
@@ -219,26 +220,82 @@ func UploadBukti(c *gin.Context) {
 		return
 	}
 
-	// Generate filename
-	filename := fmt.Sprintf("bukti_%s_%d%s", ticketID, time.Now().Unix(), getFileExtension(file.Filename))
+	// Get ticket number
+	var ticketNumber string
+	config.DB.QueryRow(`SELECT ticket_number FROM helpdesk_tickets WHERE id = ?`, ticketID).Scan(&ticketNumber)
+	if ticketNumber == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
+		return
+	}
+
+	// Create folder if not exists
+	os.MkdirAll("./uploads/masalah", os.ModePerm)
+
+	// Generate filename using ticket number
+	filename := fmt.Sprintf("%s%s", ticketNumber, getFileExtension(file.Filename))
+	filepath := "masalah/" + filename
 
 	// Save file
-	if err := c.SaveUploadedFile(file, "./uploads/"+filename); err != nil {
+	if err := c.SaveUploadedFile(file, "./uploads/"+filepath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Update database
 	_, err = config.DB.Exec(`
-		UPDATE helpdesk_tickets SET bukti_foto = ? WHERE id = ?
-	`, filename, ticketID)
+		UPDATE helpdesk_tickets SET bukti_masalah = ? WHERE id = ?
+	`, filepath, ticketID)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"filename": filename})
+	c.JSON(http.StatusOK, gin.H{"filename": filepath})
+}
+
+// UploadBuktiSelesai - Upload proof of completion (by admin)
+func UploadBuktiSelesai(c *gin.Context) {
+	ticketID := c.Param("id")
+
+	file, err := c.FormFile("bukti")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File required"})
+		return
+	}
+
+	// Get ticket number
+	var ticketNumber string
+	config.DB.QueryRow(`SELECT ticket_number FROM helpdesk_tickets WHERE id = ?`, ticketID).Scan(&ticketNumber)
+	if ticketNumber == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
+		return
+	}
+
+	// Create folder if not exists
+	os.MkdirAll("./uploads/selesai", os.ModePerm)
+
+	// Generate filename using ticket number
+	filename := fmt.Sprintf("%s%s", ticketNumber, getFileExtension(file.Filename))
+	filepath := "selesai/" + filename
+
+	// Save file
+	if err := c.SaveUploadedFile(file, "./uploads/"+filepath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update database
+	_, err = config.DB.Exec(`
+		UPDATE helpdesk_tickets SET bukti_selesai = ? WHERE id = ?
+	`, filepath, ticketID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"filename": filepath})
 }
 
 func getFileExtension(filename string) string {

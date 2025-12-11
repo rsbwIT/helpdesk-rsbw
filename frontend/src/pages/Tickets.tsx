@@ -6,7 +6,7 @@ import type { Ticket } from '../services/api';
 import '../index.css';
 
 const Tickets = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, isAdmin } = useAuth();
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -70,6 +70,7 @@ const Tickets = () => {
                 <Link to="/dashboard">Dashboard</Link>
                 <Link to="/tickets" className="active">Tiket Saya</Link>
                 <Link to="/tickets/create">Buat Tiket</Link>
+                {isAdmin && <Link to="/admin/tickets">Semua Tiket</Link>}
             </nav>
 
             <main className="app-main">

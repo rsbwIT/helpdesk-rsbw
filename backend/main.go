@@ -50,7 +50,8 @@ func main() {
 			protected.POST("/tickets", handlers.CreateTicket)
 			protected.PATCH("/tickets/:id/status", handlers.UpdateTicketStatus)
 			protected.POST("/tickets/:id/assign", handlers.AssignTicket)
-			protected.POST("/tickets/:id/bukti", handlers.UploadBukti)
+			protected.POST("/tickets/:id/bukti-masalah", handlers.UploadBuktiMasalah)
+			protected.POST("/tickets/:id/bukti-selesai", handlers.UploadBuktiSelesai)
 
 			// Categories
 			protected.GET("/categories", handlers.GetCategories)
@@ -58,6 +59,12 @@ func main() {
 			// Dashboard
 			protected.GET("/dashboard/stats", handlers.GetDashboardStats)
 			protected.GET("/dashboard/recent", handlers.GetRecentTickets)
+
+			// Auth & Admin
+			protected.GET("/auth/info", handlers.GetAuthInfo)
+			protected.GET("/admin/tickets", handlers.GetAllTicketsAdmin)
+			protected.GET("/admin/dashboard/stats", handlers.GetAdminDashboardStats)
+			protected.PATCH("/admin/tickets/:id", handlers.UpdateTicketAdmin)
 		}
 	}
 

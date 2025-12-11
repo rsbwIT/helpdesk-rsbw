@@ -6,7 +6,7 @@ import type { Category } from '../services/api';
 import '../index.css';
 
 const CreateTicket = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, isAdmin } = useAuth();
     const navigate = useNavigate();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(false);
@@ -15,6 +15,7 @@ const CreateTicket = () => {
         description: '',
         category: '',
     });
+    const [buktiFile, setBuktiFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -33,6 +34,13 @@ const CreateTicket = () => {
         }
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setBuktiFile(file);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -44,7 +52,15 @@ const CreateTicket = () => {
         try {
             setLoading(true);
             setError(null);
-            await ticketService.createTicket(formData);
+
+            // Create ticket first
+            const ticket = await ticketService.createTicket(formData);
+
+            // Upload bukti masalah if provided
+            if (buktiFile) {
+                await ticketService.uploadBuktiMasalah(ticket.id, buktiFile);
+            }
+
             navigate('/tickets');
         } catch (err) {
             setError('Gagal membuat tiket');
@@ -68,6 +84,7 @@ const CreateTicket = () => {
                 <Link to="/dashboard">Dashboard</Link>
                 <Link to="/tickets">Tiket Saya</Link>
                 <Link to="/tickets/create" className="active">Buat Tiket</Link>
+                {isAdmin && <Link to="/admin/tickets">Semua Tiket</Link>}
             </nav>
 
             <main className="app-main" style={{ maxWidth: '700px' }}>
@@ -111,6 +128,22 @@ const CreateTicket = () => {
                                     rows={6}
                                     className="form-textarea"
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">📷 Foto Bukti Masalah (opsional)</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    className="form-input"
+                                    style={{ padding: '8px' }}
+                                />
+                                {buktiFile && (
+                                    <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--gray-500)' }}>
+                                        File: {buktiFile.name}
+                                    </p>
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', gap: '12px' }}>

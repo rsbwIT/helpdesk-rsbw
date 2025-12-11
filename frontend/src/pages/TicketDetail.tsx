@@ -123,12 +123,23 @@ const TicketDetail = () => {
                         <p>{ticket.description}</p>
                     </div>
 
-                    {ticket.bukti_foto && (
+                    {ticket.bukti_masalah && (
                         <div style={{ padding: '20px', borderTop: '1px solid var(--gray-200)' }}>
-                            <p className="info-label" style={{ marginBottom: '12px' }}>Bukti Pengerjaan</p>
+                            <p className="info-label" style={{ marginBottom: '12px' }}>📷 Bukti Masalah</p>
                             <img
-                                src={`http://localhost:8080/uploads/${ticket.bukti_foto}`}
-                                alt="Bukti pengerjaan"
+                                src={`http://localhost:8080/uploads/${ticket.bukti_masalah}`}
+                                alt="Bukti masalah"
+                                style={{ maxWidth: '100%', borderRadius: '8px' }}
+                            />
+                        </div>
+                    )}
+
+                    {ticket.bukti_selesai && (
+                        <div style={{ padding: '20px', borderTop: '1px solid var(--gray-200)' }}>
+                            <p className="info-label" style={{ marginBottom: '12px' }}>✅ Bukti Selesai</p>
+                            <img
+                                src={`http://localhost:8080/uploads/${ticket.bukti_selesai}`}
+                                alt="Bukti selesai"
                                 style={{ maxWidth: '100%', borderRadius: '8px' }}
                             />
                         </div>
