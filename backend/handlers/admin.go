@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
 	"helpdesk-backend/config"
+	"helpdesk-backend/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,7 +35,7 @@ func GetAuthInfo(c *gin.Context) {
 	})
 }
 
-// GetAllTicketsAdmin - Get all tickets (admin only)
+// GetAllTicketsAdmin - Get all tickets (admin only) with date filter and pagination
 func GetAllTicketsAdmin(c *gin.Context) {
 	userID := c.GetString("user_id")
 
@@ -44,10 +47,38 @@ func GetAllTicketsAdmin(c *gin.Context) {
 		return
 	}
 
+	// Get query parameters
+	dateFilter := c.DefaultQuery("date", time.Now().Format("2006-01-02")) // Default: today
+	page := c.DefaultQuery("page", "1")
+	limit := c.DefaultQuery("limit", "20")
+
+	// Convert page and limit to int
+	pageNum := 1
+	limitNum := 20
+	fmt.Sscanf(page, "%d", &pageNum)
+	fmt.Sscanf(limit, "%d", &limitNum)
+
+	if pageNum < 1 {
+		pageNum = 1
+	}
+	if limitNum < 1 || limitNum > 100 {
+		limitNum = 20
+	}
+
+	offset := (pageNum - 1) * limitNum
+
+	// Get total count for pagination
+	var totalCount int
+	config.DB.QueryRow(`
+		SELECT COUNT(*) FROM helpdesk_tickets 
+		WHERE DATE(created_at) = ?
+	`, dateFilter).Scan(&totalCount)
+
 	rows, err := config.DB.Query(`
 		SELECT id, ticket_number, user_id, subject, description, status, category, 
 		       dikerjakan_oleh, bukti_masalah, bukti_selesai, created_at, updated_at, resolved_at
 		FROM helpdesk_tickets 
+		WHERE DATE(created_at) = ?
 		ORDER BY 
 			CASE status 
 				WHEN 'baru' THEN 1 
@@ -56,7 +87,8 @@ func GetAllTicketsAdmin(c *gin.Context) {
 				WHEN 'ditutup' THEN 4 
 			END,
 			created_at DESC
-	`)
+		LIMIT ? OFFSET ?
+	`, dateFilter, limitNum, offset)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -96,7 +128,20 @@ func GetAllTicketsAdmin(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, tickets)
+	// Calculate total pages
+	totalPages := (totalCount + limitNum - 1) / limitNum
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"tickets":     tickets,
+		"total":       totalCount,
+		"page":        pageNum,
+		"limit":       limitNum,
+		"total_pages": totalPages,
+		"date":        dateFilter,
+	})
 }
 
 // GetAdminDashboardStats - Get all tickets stats (admin only)
@@ -176,6 +221,13 @@ func UpdateTicketAdmin(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Get ticket info for notification
+	var ticketNumber, subject, oldStatus string
+	config.DB.QueryRow(`SELECT ticket_number, subject, status FROM helpdesk_tickets WHERE id = ?`, ticketID).Scan(&ticketNumber, &subject, &oldStatus)
+
+	// Send Telegram notification
+	go services.NotifyStatusChange(ticketNumber, subject, oldStatus, req.Status, nama)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Ticket updated"})
 }

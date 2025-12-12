@@ -16,11 +16,18 @@ const AllTickets = () => {
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Pagination & Date filter state
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalTickets, setTotalTickets] = useState(0);
+    const itemsPerPage = 20;
+
     useEffect(() => {
         if (isAdmin) {
             loadData();
         }
-    }, [isAdmin]);
+    }, [isAdmin, selectedDate, currentPage]);
 
     const loadData = async () => {
         try {
@@ -28,15 +35,28 @@ const AllTickets = () => {
             setError(null);
             const [statsData, ticketsData] = await Promise.all([
                 adminService.getAdminStats(),
-                adminService.getAllTickets(),
+                adminService.getAllTickets(selectedDate, currentPage, itemsPerPage),
             ]);
             setStats(statsData);
-            setTickets(ticketsData);
+            setTickets(ticketsData.tickets || []);
+            setTotalPages(ticketsData.total_pages || 1);
+            setTotalTickets(ticketsData.total || 0);
         } catch (err) {
             setError('Gagal memuat data');
             console.error(err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSelectedDate(e.target.value);
+        setCurrentPage(1); // Reset to first page
+    };
+
+    const handlePageChange = (page: number) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
         }
     };
 
@@ -169,20 +189,29 @@ const AllTickets = () => {
                 </div>
 
                 <div className="card">
-                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Semua Tiket</span>
-                        <select
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value)}
-                            className="form-select"
-                            style={{ width: 'auto' }}
-                        >
-                            <option value="semua">Semua Status</option>
-                            <option value="baru">Baru</option>
-                            <option value="dikerjakan">Dikerjakan</option>
-                            <option value="selesai">Selesai</option>
-                            <option value="ditutup">Ditutup</option>
-                        </select>
+                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <span>Tiket Tanggal: <strong>{new Date(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong> ({totalTickets} tiket)</span>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={handleDateChange}
+                                className="form-input"
+                                style={{ width: 'auto' }}
+                            />
+                            <select
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value)}
+                                className="form-select"
+                                style={{ width: 'auto' }}
+                            >
+                                <option value="semua">Semua Status</option>
+                                <option value="baru">Baru</option>
+                                <option value="dikerjakan">Dikerjakan</option>
+                                <option value="selesai">Selesai</option>
+                                <option value="ditutup">Ditutup</option>
+                            </select>
+                        </div>
                     </div>
                     <table className="table">
                         <thead>
@@ -199,7 +228,7 @@ const AllTickets = () => {
                             {filteredTickets.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="empty-state">
-                                        Tidak ada tiket
+                                        Tidak ada tiket pada tanggal ini
                                     </td>
                                 </tr>
                             ) : (
@@ -261,6 +290,29 @@ const AllTickets = () => {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--gray-200)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="btn btn-secondary btn-sm"
+                            >
+                                ← Prev
+                            </button>
+                            <span style={{ padding: '0 16px', fontSize: '14px' }}>
+                                Halaman {currentPage} dari {totalPages}
+                            </span>
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="btn btn-secondary btn-sm"
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    )}
                 </div>
             </main>
 

@@ -68,7 +68,7 @@ const Tickets = () => {
             </header>
 
             <nav className="app-nav">
-                <Link to="/dashboard">Dashboard</Link>
+                {isAdmin && <Link to="/dashboard">Dashboard</Link>}
                 <Link to="/tickets" className="active">Tiket Saya</Link>
                 <Link to="/tickets/create">Buat Tiket</Link>
                 {isAdmin && <Link to="/admin/tickets">Semua Tiket</Link>}

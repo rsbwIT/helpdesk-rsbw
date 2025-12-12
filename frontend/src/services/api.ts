@@ -1,7 +1,7 @@
 import axios from 'axios';
 import authService from './auth';
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -129,6 +129,15 @@ export interface AuthInfo {
     is_admin: boolean;
 }
 
+export interface TicketListResponse {
+    tickets: Ticket[];
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+    date: string;
+}
+
 export const adminService = {
     // Get auth info including admin status
     getAuthInfo: async (): Promise<AuthInfo> => {
@@ -136,9 +145,13 @@ export const adminService = {
         return response.data;
     },
 
-    // Get all tickets (admin only)
-    getAllTickets: async (): Promise<Ticket[]> => {
-        const response = await api.get('/admin/tickets');
+    // Get all tickets (admin only) with date filter and pagination
+    getAllTickets: async (date?: string, page: number = 1, limit: number = 20): Promise<TicketListResponse> => {
+        const params = new URLSearchParams();
+        if (date) params.append('date', date);
+        params.append('page', page.toString());
+        params.append('limit', limit.toString());
+        const response = await api.get(`/admin/tickets?${params.toString()}`);
         return response.data;
     },
 

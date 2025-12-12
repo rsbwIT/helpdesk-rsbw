@@ -10,6 +10,7 @@ import (
 
 	"helpdesk-backend/config"
 	"helpdesk-backend/models"
+	"helpdesk-backend/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -110,6 +111,12 @@ func CreateTicket(c *gin.Context) {
 	`, id).Scan(&t.ID, &t.TicketNumber, &t.UserID, &t.Subject, &t.Description,
 		&t.Status, &t.Category, &t.DikerjakanOleh, &t.BuktiMasalah, &t.BuktiSelesai,
 		&t.CreatedAt, &t.UpdatedAt, &t.ResolvedAt)
+
+	// Get user name for notification
+	userName := c.GetString("user_nama")
+
+	// Send Telegram notification
+	go services.NotifyNewTicket(ticketNumber, req.Subject, req.Category, userName)
 
 	c.JSON(http.StatusCreated, t)
 }

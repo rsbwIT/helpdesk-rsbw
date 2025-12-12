@@ -10,7 +10,7 @@ const Login = () => {
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/dashboard');
+            navigate('/tickets');
             return;
         }
 
@@ -19,7 +19,7 @@ const Login = () => {
         if (token) {
             const success = login(token);
             if (success) {
-                navigate('/dashboard');
+                navigate('/tickets');
             } else {
                 navigate('/error?message=Token tidak valid atau sudah expired');
             }
