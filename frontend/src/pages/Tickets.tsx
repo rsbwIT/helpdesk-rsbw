@@ -10,6 +10,7 @@ const Tickets = () => {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
     useEffect(() => {
         loadTickets();
@@ -90,7 +91,7 @@ const Tickets = () => {
                                 <th>Kategori</th>
                                 <th>Status</th>
                                 <th>Dikerjakan Oleh</th>
-                                <th>Tanggal</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -104,17 +105,30 @@ const Tickets = () => {
                                 tickets.map((ticket) => (
                                     <tr key={ticket.id}>
                                         <td>
-                                            <Link to={`/tickets/${ticket.id}`} className="link">{ticket.ticket_number}</Link>
+                                            <button
+                                                onClick={() => setSelectedTicket(ticket)}
+                                                className="link"
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                                            >
+                                                {ticket.ticket_number}
+                                            </button>
                                         </td>
                                         <td>{ticket.subject}</td>
-                                        <td>{ticket.category}</td>
+                                        <td>{ticket.category || '-'}</td>
                                         <td>
                                             <span className={`badge ${getStatusClass(ticket.status)}`}>
                                                 {getStatusLabel(ticket.status)}
                                             </span>
                                         </td>
                                         <td>{ticket.dikerjakan_oleh || '-'}</td>
-                                        <td>{new Date(ticket.created_at).toLocaleDateString('id-ID')}</td>
+                                        <td>
+                                            <button
+                                                onClick={() => setSelectedTicket(ticket)}
+                                                className="btn btn-secondary btn-sm"
+                                            >
+                                                Detail
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -122,6 +136,95 @@ const Tickets = () => {
                     </table>
                 </div>
             </main>
+
+            {/* Detail Modal */}
+            {selectedTicket && (
+                <div className="modal-overlay" onClick={() => setSelectedTicket(null)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Detail Tiket - {selectedTicket.ticket_number}</h3>
+                            <button className="modal-close" onClick={() => setSelectedTicket(null)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="detail-row">
+                                <span className="detail-label">Subject</span>
+                                <span className="detail-value">{selectedTicket.subject}</span>
+                            </div>
+                            <div className="detail-row">
+                                <span className="detail-label">Kategori</span>
+                                <span className="detail-value">{selectedTicket.category || '-'}</span>
+                            </div>
+                            <div className="detail-row">
+                                <span className="detail-label">Status</span>
+                                <span className="detail-value">
+                                    <span className={`badge ${getStatusClass(selectedTicket.status)}`}>
+                                        {getStatusLabel(selectedTicket.status)}
+                                    </span>
+                                </span>
+                            </div>
+                            <div className="detail-row">
+                                <span className="detail-label">Dikerjakan Oleh</span>
+                                <span className="detail-value">{selectedTicket.dikerjakan_oleh || '-'}</span>
+                            </div>
+                            <div className="detail-row">
+                                <span className="detail-label">Tanggal Dibuat</span>
+                                <span className="detail-value">
+                                    {new Date(selectedTicket.created_at).toLocaleString('id-ID')}
+                                </span>
+                            </div>
+                            {selectedTicket.resolved_at && (
+                                <div className="detail-row">
+                                    <span className="detail-label">Tanggal Selesai</span>
+                                    <span className="detail-value">
+                                        {new Date(selectedTicket.resolved_at).toLocaleString('id-ID')}
+                                    </span>
+                                </div>
+                            )}
+                            <div className="detail-row">
+                                <span className="detail-label">Deskripsi</span>
+                                <span className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>
+                                    {selectedTicket.description}
+                                </span>
+                            </div>
+
+                            {selectedTicket.bukti_masalah && (
+                                <div className="detail-row">
+                                    <span className="detail-label">Bukti Masalah</span>
+                                    <span className="detail-value">
+                                        <img
+                                            src={`http://localhost:8080/uploads/${selectedTicket.bukti_masalah}`}
+                                            alt="Bukti Masalah"
+                                            className="bukti-image"
+                                        />
+                                    </span>
+                                </div>
+                            )}
+
+                            {selectedTicket.bukti_selesai && (
+                                <div className="detail-row">
+                                    <span className="detail-label">Bukti Selesai</span>
+                                    <span className="detail-value">
+                                        <img
+                                            src={`http://localhost:8080/uploads/${selectedTicket.bukti_selesai}`}
+                                            alt="Bukti Selesai"
+                                            className="bukti-image"
+                                        />
+                                    </span>
+                                </div>
+                            )}
+
+                            <div style={{ marginTop: '20px' }}>
+                                <button
+                                    onClick={() => setSelectedTicket(null)}
+                                    className="btn btn-secondary"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
